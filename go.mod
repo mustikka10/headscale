@@ -52,7 +52,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.1
-	tailscale.com v1.94.0
+	tailscale.com v1.94.2
 	zgo.at/zcache/v2 v2.4.1
 	zombiezen.com/go/postgrestest v1.0.1
 )
@@ -229,7 +229,7 @@ require (
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard/windows v0.5.3 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260120221211-b8f7ae30c516 // indirect
-	gvisor.dev/gvisor v0.0.0-20260122174619-f8d7cad42226 // indirect
+	gvisor.dev/gvisor v0.0.0-20250205023644-9414b50a5633 // indirect
 )
 
 tool (
