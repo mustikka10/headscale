@@ -1340,6 +1340,22 @@ const (
 
 var errStatusCodeNotOK = errors.New("status code not OK")
 
+// parseHeadscaleImage parses HEADSCALE_INTEGRATION_HEADSCALE_IMAGE into repo and tag.
+// Returns an error if the env var is not in the expected "repository:tag" format.
+func parseHeadscaleImage() (repo, tag string, err error) {
+	prebuiltImage := os.Getenv("HEADSCALE_INTEGRATION_HEADSCALE_IMAGE")
+	if prebuiltImage == "" {
+		return "", "", nil
+	}
+
+	r, t, found := strings.Cut(prebuiltImage, ":")
+	if !found {
+		return "", "", fmt.Errorf("invalid HEADSCALE_INTEGRATION_HEADSCALE_IMAGE format, expected repository:tag")
+	}
+
+	return r, t, nil
+}
+
 func (s *Scenario) runMockOIDC(accessTTL time.Duration, users []mockoidc.MockUser) error {
 	port, err := dockertestutil.RandomFreeHostPort()
 	if err != nil {
@@ -1387,13 +1403,12 @@ func (s *Scenario) runMockOIDC(accessTTL time.Duration, users []mockoidc.MockUse
 	var pmockoidc *dockertest.Resource
 
 	// Use pre-built headscale image if available (avoids expensive go mod download in CI)
-	prebuiltImage := os.Getenv("HEADSCALE_INTEGRATION_HEADSCALE_IMAGE")
-	if prebuiltImage != "" {
-		repo, tag, found := strings.Cut(prebuiltImage, ":")
-		if !found {
-			return fmt.Errorf("invalid HEADSCALE_INTEGRATION_HEADSCALE_IMAGE format, expected repository:tag")
-		}
+	repo, tag, err := parseHeadscaleImage()
+	if err != nil {
+		return err
+	}
 
+	if repo != "" {
 		mockOidcOptions.Repository = repo
 		mockOidcOptions.Tag = tag
 
@@ -1502,13 +1517,12 @@ func Webservice(s *Scenario, networkName string) (*dockertest.Resource, error) {
 	)
 
 	// Use pre-built headscale image if available (avoids expensive go mod download in CI)
-	prebuiltImage := os.Getenv("HEADSCALE_INTEGRATION_HEADSCALE_IMAGE")
-	if prebuiltImage != "" {
-		repo, tag, found := strings.Cut(prebuiltImage, ":")
-		if !found {
-			return nil, fmt.Errorf("invalid HEADSCALE_INTEGRATION_HEADSCALE_IMAGE format, expected repository:tag")
-		}
+	repo, tag, err := parseHeadscaleImage()
+	if err != nil {
+		return nil, err
+	}
 
+	if repo != "" {
 		webOpts.Repository = repo
 		webOpts.Tag = tag
 
