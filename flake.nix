@@ -26,8 +26,8 @@
       overlay = _: prev:
         let
           pkgs = nixpkgs.legacyPackages.${prev.system};
-          buildGo = pkgs.buildGo125Module;
-          vendorHash = "sha256-VOi4PGZ8I+2MiwtzxpKc/4smsL5KcH/pHVkjJfAFPJ0=";
+          buildGo = pkgs.buildGo126Module;
+          vendorHash = "sha256-3CbL4NNv7xQelmRPQcJ2UKaKyvuP7tsQ9D+IZd1f8Qo=";
         in
         {
           headscale = buildGo {
@@ -103,7 +103,7 @@
           #   buildGoModule = buildGo;
           # };
 
-          # The package uses buildGo125Module, not the convention.
+          # The package uses buildGo126Module, not the convention.
           # goreleaser = prev.goreleaser.override {
           #   buildGoModule = buildGo;
           # };
@@ -132,7 +132,7 @@
           overlays = [ self.overlay ];
           inherit system;
         };
-        buildDeps = with pkgs; [ git go_1_25 gnumake ];
+        buildDeps = with pkgs; [ git go_1_26 gnumake ];
         devDeps = with pkgs;
           buildDeps
           ++ [
