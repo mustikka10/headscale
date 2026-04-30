@@ -1374,11 +1374,6 @@ func (s *Scenario) runMockOIDC(accessTTL time.Duration, users []mockoidc.MockUse
 		},
 	}
 
-	headscaleBuildOptions := &dockertest.BuildOptions{
-		Dockerfile: hsic.IntegrationTestDockerFileName,
-		ContextDir: dockerContextPath,
-	}
-
 	err = s.pool.RemoveContainerByName(hostname)
 	if err != nil {
 		return err
@@ -1389,14 +1384,39 @@ func (s *Scenario) runMockOIDC(accessTTL time.Duration, users []mockoidc.MockUse
 	// Add integration test labels if running under hi tool
 	dockertestutil.DockerAddIntegrationLabels(mockOidcOptions, "oidc")
 
-	if pmockoidc, err := s.pool.BuildAndRunWithBuildOptions(
-		headscaleBuildOptions,
-		mockOidcOptions,
-		dockertestutil.DockerRestartPolicy); err == nil {
-		s.mockOIDC.r = pmockoidc
+	var pmockoidc *dockertest.Resource
+
+	// Use pre-built headscale image if available (avoids expensive go mod download in CI)
+	prebuiltImage := os.Getenv("HEADSCALE_INTEGRATION_HEADSCALE_IMAGE")
+	if prebuiltImage != "" {
+		repo, tag, found := strings.Cut(prebuiltImage, ":")
+		if !found {
+			return fmt.Errorf("invalid HEADSCALE_INTEGRATION_HEADSCALE_IMAGE format, expected repository:tag")
+		}
+
+		mockOidcOptions.Repository = repo
+		mockOidcOptions.Tag = tag
+
+		pmockoidc, err = s.pool.RunWithOptions(mockOidcOptions, dockertestutil.DockerRestartPolicy)
+	} else if util.IsCI() {
+		return fmt.Errorf("HEADSCALE_INTEGRATION_HEADSCALE_IMAGE must be set in CI")
 	} else {
+		headscaleBuildOptions := &dockertest.BuildOptions{
+			Dockerfile: hsic.IntegrationTestDockerFileName,
+			ContextDir: dockerContextPath,
+		}
+
+		pmockoidc, err = s.pool.BuildAndRunWithBuildOptions(
+			headscaleBuildOptions,
+			mockOidcOptions,
+			dockertestutil.DockerRestartPolicy)
+	}
+
+	if err != nil {
 		return err
 	}
+
+	s.mockOIDC.r = pmockoidc
 
 	// headscale needs to set up the provider with a specific
 	// IP addr to ensure we get the correct config from the well-known
@@ -1476,15 +1496,37 @@ func Webservice(s *Scenario, networkName string) (*dockertest.Resource, error) {
 	// Add integration test labels if running under hi tool
 	dockertestutil.DockerAddIntegrationLabels(webOpts, "web")
 
-	webBOpts := &dockertest.BuildOptions{
-		Dockerfile: hsic.IntegrationTestDockerFileName,
-		ContextDir: dockerContextPath,
+	var (
+		web *dockertest.Resource
+		err error
+	)
+
+	// Use pre-built headscale image if available (avoids expensive go mod download in CI)
+	prebuiltImage := os.Getenv("HEADSCALE_INTEGRATION_HEADSCALE_IMAGE")
+	if prebuiltImage != "" {
+		repo, tag, found := strings.Cut(prebuiltImage, ":")
+		if !found {
+			return nil, fmt.Errorf("invalid HEADSCALE_INTEGRATION_HEADSCALE_IMAGE format, expected repository:tag")
+		}
+
+		webOpts.Repository = repo
+		webOpts.Tag = tag
+
+		web, err = s.pool.RunWithOptions(webOpts, dockertestutil.DockerRestartPolicy)
+	} else if util.IsCI() {
+		return nil, fmt.Errorf("HEADSCALE_INTEGRATION_HEADSCALE_IMAGE must be set in CI")
+	} else {
+		webBOpts := &dockertest.BuildOptions{
+			Dockerfile: hsic.IntegrationTestDockerFileName,
+			ContextDir: dockerContextPath,
+		}
+
+		web, err = s.pool.BuildAndRunWithBuildOptions(
+			webBOpts,
+			webOpts,
+			dockertestutil.DockerRestartPolicy)
 	}
 
-	web, err := s.pool.BuildAndRunWithBuildOptions(
-		webBOpts,
-		webOpts,
-		dockertestutil.DockerRestartPolicy)
 	if err != nil {
 		return nil, err
 	}
