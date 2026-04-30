@@ -17,8 +17,8 @@ jobs:
     steps:
       - name: Pull and save golang image
         run: |
-          docker pull golang:1.25-alpine
-          docker save golang:1.25-alpine | gzip > golang-image.tar.gz
+          docker pull golang:1.26-alpine
+          docker save golang:1.26-alpine | gzip > golang-image.tar.gz
       - name: Upload golang image
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
@@ -72,18 +72,6 @@ jobs:
           name: hi-binary
           path: hi
           retention-days: 10
-      - name: Package Go cache
-        if: steps.changed-files.outputs.files == 'true'
-        run: |
-          # Package Go module cache and build cache
-          tar -czf go-cache.tar.gz -C ~ go .cache/go-build
-      - name: Upload Go cache
-        if: steps.changed-files.outputs.files == 'true'
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
-        with:
-          name: go-cache
-          path: go-cache.tar.gz
-          retention-days: 10
       - name: Download golang image
         if: steps.changed-files.outputs.files == 'true'
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
@@ -123,6 +111,18 @@ jobs:
         with:
           name: tailscale-head-image
           path: tailscale-head-image.tar.gz
+          retention-days: 10
+      - name: Package Go cache
+        if: steps.changed-files.outputs.files == 'true'
+        run: |
+          # Package Go module cache and build cache
+          tar -czf go-cache.tar.gz -C ~ go .cache/go-build
+      - name: Upload Go cache
+        if: steps.changed-files.outputs.files == 'true'
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: go-cache
+          path: go-cache.tar.gz
           retention-days: 10
   build-postgres:
     runs-on: ubuntu-latest
