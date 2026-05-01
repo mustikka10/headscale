@@ -168,7 +168,7 @@ The Makefile will warn you if any required tools are missing and suggest running
 ## Contributors
 
 <a href="https://github.com/juanfont/headscale/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=juanfont/headscale" />
+  <img src="https://contrib.rocks/image?repo=juanfont/headscale">
 </a>
 
-Made with [contrib.rocks](https://contrib.rocks).
+Made with <a href="https://contrib.rocks">contrib.rocks</a>.
