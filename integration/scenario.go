@@ -1341,19 +1341,22 @@ const (
 var errStatusCodeNotOK = errors.New("status code not OK")
 
 // parseHeadscaleImage parses HEADSCALE_INTEGRATION_HEADSCALE_IMAGE into repo and tag.
+// Returns found=false and empty strings if the env var is not set.
 // Returns an error if the env var is not in the expected "repository:tag" format.
-func parseHeadscaleImage() (repo, tag string, err error) {
+// Images without an explicit tag default to "latest".
+func parseHeadscaleImage() (repo, tag string, found bool, err error) {
 	prebuiltImage := os.Getenv("HEADSCALE_INTEGRATION_HEADSCALE_IMAGE")
 	if prebuiltImage == "" {
-		return "", "", nil
+		return "", "", false, nil
 	}
 
-	r, t, found := strings.Cut(prebuiltImage, ":")
-	if !found {
-		return "", "", fmt.Errorf("invalid HEADSCALE_INTEGRATION_HEADSCALE_IMAGE format, expected repository:tag")
+	r, t, hasTag := strings.Cut(prebuiltImage, ":")
+	if !hasTag {
+		// No tag specified; default to "latest" (standard Docker behaviour)
+		t = "latest"
 	}
 
-	return r, t, nil
+	return r, t, true, nil
 }
 
 func (s *Scenario) runMockOIDC(accessTTL time.Duration, users []mockoidc.MockUser) error {
@@ -1403,12 +1406,12 @@ func (s *Scenario) runMockOIDC(accessTTL time.Duration, users []mockoidc.MockUse
 	var pmockoidc *dockertest.Resource
 
 	// Use pre-built headscale image if available (avoids expensive go mod download in CI)
-	repo, tag, err := parseHeadscaleImage()
+	repo, tag, found, err := parseHeadscaleImage()
 	if err != nil {
 		return err
 	}
 
-	if repo != "" {
+	if found {
 		mockOidcOptions.Repository = repo
 		mockOidcOptions.Tag = tag
 
@@ -1517,12 +1520,12 @@ func Webservice(s *Scenario, networkName string) (*dockertest.Resource, error) {
 	)
 
 	// Use pre-built headscale image if available (avoids expensive go mod download in CI)
-	repo, tag, err := parseHeadscaleImage()
+	repo, tag, found, err := parseHeadscaleImage()
 	if err != nil {
 		return nil, err
 	}
 
-	if repo != "" {
+	if found {
 		webOpts.Repository = repo
 		webOpts.Tag = tag
 
