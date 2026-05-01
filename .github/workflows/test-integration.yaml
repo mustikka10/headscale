@@ -17,8 +17,8 @@ jobs:
     steps:
       - name: Pull and save golang image
         run: |
-          docker pull golang:1.25-alpine
-          docker save golang:1.25-alpine | gzip > golang-image.tar.gz
+          docker pull golang:1.26-alpine
+          docker save golang:1.26-alpine | gzip > golang-image.tar.gz
       - name: Upload golang image
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
