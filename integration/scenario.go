@@ -1340,6 +1340,20 @@ const (
 
 var errStatusCodeNotOK = errors.New("status code not OK")
 
+// headscalePrebuiltImageParts returns the repository and tag for the pre-built headscale
+// image set via HEADSCALE_INTEGRATION_HEADSCALE_IMAGE, or empty strings if unset.
+func headscalePrebuiltImageParts() (repo, tag string, err error) {
+	prebuiltImage := os.Getenv("HEADSCALE_INTEGRATION_HEADSCALE_IMAGE")
+	if prebuiltImage == "" {
+		return "", "", nil
+	}
+	repo, tag, ok := strings.Cut(prebuiltImage, ":")
+	if !ok {
+		return "", "", fmt.Errorf("invalid HEADSCALE_INTEGRATION_HEADSCALE_IMAGE format, expected repository:tag")
+	}
+	return repo, tag, nil
+}
+
 func (s *Scenario) runMockOIDC(accessTTL time.Duration, users []mockoidc.MockUser) error {
 	port, err := dockertestutil.RandomFreeHostPort()
 	if err != nil {
@@ -1374,11 +1388,6 @@ func (s *Scenario) runMockOIDC(accessTTL time.Duration, users []mockoidc.MockUse
 		},
 	}
 
-	headscaleBuildOptions := &dockertest.BuildOptions{
-		Dockerfile: hsic.IntegrationTestDockerFileName,
-		ContextDir: dockerContextPath,
-	}
-
 	err = s.pool.RemoveContainerByName(hostname)
 	if err != nil {
 		return err
@@ -1389,14 +1398,32 @@ func (s *Scenario) runMockOIDC(accessTTL time.Duration, users []mockoidc.MockUse
 	// Add integration test labels if running under hi tool
 	dockertestutil.DockerAddIntegrationLabels(mockOidcOptions, "oidc")
 
-	if pmockoidc, err := s.pool.BuildAndRunWithBuildOptions(
-		headscaleBuildOptions,
-		mockOidcOptions,
-		dockertestutil.DockerRestartPolicy); err == nil {
-		s.mockOIDC.r = pmockoidc
-	} else {
+	var pmockoidc *dockertest.Resource
+
+	// Use pre-built headscale image if available (CI), otherwise build from Dockerfile.
+	repo, tag, err := headscalePrebuiltImageParts()
+	if err != nil {
 		return err
 	}
+	if repo != "" {
+		log.Printf("Using pre-built headscale image for mock OIDC: %s:%s", repo, tag)
+		mockOidcOptions.Repository = repo
+		mockOidcOptions.Tag = tag
+		pmockoidc, err = s.pool.RunWithOptions(mockOidcOptions, dockertestutil.DockerRestartPolicy)
+	} else {
+		headscaleBuildOptions := &dockertest.BuildOptions{
+			Dockerfile: hsic.IntegrationTestDockerFileName,
+			ContextDir: dockerContextPath,
+		}
+		pmockoidc, err = s.pool.BuildAndRunWithBuildOptions(
+			headscaleBuildOptions,
+			mockOidcOptions,
+			dockertestutil.DockerRestartPolicy)
+	}
+	if err != nil {
+		return err
+	}
+	s.mockOIDC.r = pmockoidc
 
 	// headscale needs to set up the provider with a specific
 	// IP addr to ensure we get the correct config from the well-known
@@ -1476,15 +1503,28 @@ func Webservice(s *Scenario, networkName string) (*dockertest.Resource, error) {
 	// Add integration test labels if running under hi tool
 	dockertestutil.DockerAddIntegrationLabels(webOpts, "web")
 
-	webBOpts := &dockertest.BuildOptions{
-		Dockerfile: hsic.IntegrationTestDockerFileName,
-		ContextDir: dockerContextPath,
-	}
+	var web *dockertest.Resource
 
-	web, err := s.pool.BuildAndRunWithBuildOptions(
-		webBOpts,
-		webOpts,
-		dockertestutil.DockerRestartPolicy)
+	// Use pre-built headscale image if available (CI), otherwise build from Dockerfile.
+	repo, tag, err := headscalePrebuiltImageParts()
+	if err != nil {
+		return nil, err
+	}
+	if repo != "" {
+		log.Printf("Using pre-built headscale image for webservice: %s:%s", repo, tag)
+		webOpts.Repository = repo
+		webOpts.Tag = tag
+		web, err = s.pool.RunWithOptions(webOpts, dockertestutil.DockerRestartPolicy)
+	} else {
+		webBOpts := &dockertest.BuildOptions{
+			Dockerfile: hsic.IntegrationTestDockerFileName,
+			ContextDir: dockerContextPath,
+		}
+		web, err = s.pool.BuildAndRunWithBuildOptions(
+			webBOpts,
+			webOpts,
+			dockertestutil.DockerRestartPolicy)
+	}
 	if err != nil {
 		return nil, err
 	}
