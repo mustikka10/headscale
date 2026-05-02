@@ -10,7 +10,7 @@ This directory contains the [Dev Container](https://containers.dev/) configurati
 - **Guide for Dockerfile / Docker Compose**: <https://containers.dev/guide/dockerfile>
 - **Non-root user info**: <https://aka.ms/dev-containers-non-root>
 
-## Common Customisations
+## Common Customizations
 
 The following optional fields can be added to `devcontainer.json` as needed:
 
