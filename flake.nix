@@ -139,7 +139,7 @@
             golangci-lint
             golangci-lint-langserver
             golines
-            nodePackages.prettier
+            prettier
             nixpkgs-fmt
             goreleaser
             nfpm
