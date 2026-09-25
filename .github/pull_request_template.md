@@ -12,7 +12,7 @@ If you find mistakes in the documentation, please submit a fix to the documentat
 
 <!-- Please tick if the following things apply. You… -->
 
-- [ ] have read the [CONTRIBUTING.md](./CONTRIBUTING.md) file
+- [ ] have read the [CONTRIBUTING.md](../CONTRIBUTING.md) file
 - [ ] raised a GitHub issue or discussed it on the projects chat beforehand
 - [ ] added unit tests
 - [ ] added integration tests
